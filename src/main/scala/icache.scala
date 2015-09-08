@@ -197,6 +197,7 @@ class ICache extends FrontendModule
   val repl_way = if (isDM) UInt(0) else LFSR16(s2_miss)(log2Up(nWays)-1,0)
   val entagbits = code.width(tagBits)
   val tag_array = SeqMem(Bits(width = entagbits*nWays), nSets)
+  tag_array.setMemName("ICache_Tag_Array_Mem")
   val tag_rdata = tag_array.read(s0_pgoff(untagBits-1,blockOffBits), !refill_done && s0_valid)
   when (refill_done) {
     val wmask = FillInterleaved(entagbits, if (isDM) Bits(1) else UIntToOH(repl_way))
@@ -239,6 +240,7 @@ class ICache extends FrontendModule
 
   for (i <- 0 until nWays) {
     val data_array = SeqMem(Bits(width = code.width(rowBits)), nSets*refillCycles)
+    data_array.setMemName("ICache_Data_Array_Mem")
     val wen = narrow_grant.valid && repl_way === UInt(i)
     when (wen) {
       val e_d = code.encode(narrow_grant.bits.data).toUInt

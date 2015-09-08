@@ -552,6 +552,7 @@ class DataArray extends L1HellaCacheModule {
       val r_raddr = RegEnable(io.read.bits.addr, io.read.valid)
       for (p <- 0 until resp.size) {
         val array = SeqMem(Bits(width=encRowBits), nSets*refillCycles)
+        array.setMemName("NBDCache_Data_Array_Mem_" + p)
         when (wway_en.orR && io.write.valid && io.write.bits.wmask(p)) {
           val data = Fill(rowWords, io.write.bits.data(encDataBits*(p+1)-1,encDataBits*p))
           val mask = FillInterleaved(encDataBits, wway_en)
@@ -571,6 +572,7 @@ class DataArray extends L1HellaCacheModule {
     val wmask = FillInterleaved(encDataBits, io.write.bits.wmask)
     for (w <- 0 until nWays) {
       val array = SeqMem(Bits(width=encRowBits), nSets*refillCycles)
+      array.setMemName("NBDCache_Data_Array_Mem")
       when (io.write.bits.way_en(w) && io.write.valid) {
         array.write(waddr, io.write.bits.data, wmask)
       }
