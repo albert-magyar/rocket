@@ -815,6 +815,22 @@ class HellaCache(implicit p: Parameters) extends L1HellaCacheModule()(p) {
     s2_req.cmd := s1_req.cmd
   }
 
+  val is_vls = true
+
+  val vls_base_vpn = Reg(init = Bits(0, width = vpnBits))
+  val vls_npages = Reg(init = Bits(0, width = vpnBits))
+  val vls_base_ppn = Reg(init = Bits(0, width = ppnBits))
+  val s1_req_vpn = s1_req.addr >> pgIdxBits
+  val s1_req_vls_vpn_offset = s1_req_vpn - vls_base_vpn
+  val s1_is_vls_addr = !s1_req.phys && s1_req_vpn >= vls_base_vpn && s1_req_vls_vpn_offset < vls_npages
+  if (is_vls) {
+    dtlb.io.req.valid := s1_valid_masked && s1_readwrite && !s1_req.phys && !s1_is_vls_addr
+    dtlb.io.req.bits.passthrough := s1_req.phys || s1_is_vls_addr
+    when (s1_is_vls_addr) {
+      dtlb.io.req.bits.vpn := vls_base_ppn + s1_req_vls_vpn_offset
+    }
+  }
+
   val misaligned =
     (((s1_req.typ === MT_H) || (s1_req.typ === MT_HU)) && (s1_req.addr(0) != Bits(0))) ||
     (((s1_req.typ === MT_W) || (s1_req.typ === MT_WU)) && (s1_req.addr(1,0) != Bits(0))) ||
