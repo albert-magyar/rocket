@@ -99,6 +99,7 @@ class CSRFileIO(implicit p: Parameters) extends CoreBundle {
   val rocc = new RoCCInterface().flip
   val interrupt = Bool(OUTPUT)
   val interrupt_cause = UInt(OUTPUT, xLen)
+  val vls_translation = new VLSTranslation
 }
 
 class CSRFile(implicit p: Parameters) extends CoreModule()(p)
