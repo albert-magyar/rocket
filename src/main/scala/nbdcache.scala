@@ -735,7 +735,7 @@ class DataArray(implicit p: Parameters) extends L1HellaCacheModule()(p) {
 
 class VLSTranslation(implicit p: Parameters) extends L1HellaCacheBundle()(p) {
   val base_vpn = Bits(width = vpnBits)
-  val size = Bits(width = vpnBits)
+  val npages = Bits(width = vpnBits)
   val base_ppn = Bits(width = ppnBits)
 }
 
@@ -828,7 +828,7 @@ class HellaCache(implicit p: Parameters) extends L1HellaCacheModule()(p) {
   val s1_req_vls_vpn_offset = s1_req_vpn - io.vls_trans.base_vpn
   val s1_is_vls_addr = !s1_req.phys &&
     s1_req_vpn >= io.vls_trans.base_vpn &&
-    s1_req_vls_vpn_offset < io.vls_trans.size
+    s1_req_vls_vpn_offset < io.vls_trans.npages
   if (is_vls) {
     dtlb.io.req.valid := s1_valid_masked && s1_readwrite && !s1_req.phys && !s1_is_vls_addr
     dtlb.io.req.bits.passthrough := s1_req.phys || s1_is_vls_addr

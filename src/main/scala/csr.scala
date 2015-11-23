@@ -99,7 +99,7 @@ class CSRFileIO(implicit p: Parameters) extends CoreBundle {
   val rocc = new RoCCInterface().flip
   val interrupt = Bool(OUTPUT)
   val interrupt_cause = UInt(OUTPUT, xLen)
-  val vls_translation = new VLSTranslation
+  val vls_trans = new VLSTranslation
 }
 
 class CSRFile(implicit p: Parameters) extends CoreModule()(p)
@@ -132,6 +132,8 @@ class CSRFile(implicit p: Parameters) extends CoreModule()(p)
   val reg_uarch_counters = io.uarch_counters.map(WideCounter(xLen, _))
   val reg_fflags = Reg(UInt(width = 5))
   val reg_frm = Reg(UInt(width = 3))
+
+  val reg_vls_trans = Reg(new VLSTranslation)
 
   val irq_rocc = Bool(usingRoCC) && io.rocc.interrupt
 
@@ -251,6 +253,15 @@ class CSRFile(implicit p: Parameters) extends CoreModule()(p)
     read_mapping += CSRs.sasid -> UInt(0)
     read_mapping += CSRs.sepc -> reg_sepc.sextTo(xLen)
     read_mapping += CSRs.stvec -> reg_stvec.sextTo(xLen)
+  }
+
+  val is_vls = true
+  if (is_vls) {
+    read_mapping += CSRs.vlsvbase -> Cat(reg_vls_trans.base_vpn, Bits(0, width = pgIdxBits))
+    read_mapping += CSRs.vlssize -> Cat(reg_vls_trans.npages, Bits(0, width = pgIdxBits))
+    read_mapping += CSRs.vlsvbasew -> Cat(reg_vls_trans.base_vpn, Bits(0, width = pgIdxBits))
+    read_mapping += CSRs.svlspbase -> Cat(reg_vls_trans.base_ppn, Bits(0, width = pgIdxBits))
+    read_mapping += CSRs.vlssizew -> Cat(reg_vls_trans.npages, Bits(0, width = pgIdxBits))
   }
 
   for (i <- 0 until nCustomMrwCsrs) {
@@ -450,6 +461,11 @@ class CSRFile(implicit p: Parameters) extends CoreModule()(p)
       when (decoded_addr(CSRs.sepc))     { reg_sepc := ~(~wdata | (coreInstBytes-1)) }
       when (decoded_addr(CSRs.stvec))    { reg_stvec := ~(~wdata | (coreInstBytes-1)) }
     }
+    if (is_vls) {
+      when (decoded_addr(CSRs.vlsvbasew)) { reg_vls_trans.base_vpn := wdata(vaddrBits-1,pgIdxBits) }
+      when (decoded_addr(CSRs.vlssizew)) { reg_vls_trans.npages := wdata(vaddrBits-1,pgIdxBits) }
+      when (decoded_addr(CSRs.svlspbase)) { reg_vls_trans.base_ppn := wdata(paddrBits-1,pgIdxBits) }
+    }
   }
 
   when(this.reset) {
@@ -469,5 +485,8 @@ class CSRFile(implicit p: Parameters) extends CoreModule()(p)
     reg_mstatus.xs := 0
     reg_mstatus.sd_rv32 := false
     reg_mstatus.sd := false
+    if (is_vls) {
+      reg_vls_trans.npages := 0
+    }
   }
 }
